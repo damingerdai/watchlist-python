@@ -2,3 +2,4 @@ Flask==2.3.0
 flask-sqlalchemy==2.5.1
 sqlalchemy==1.4.47
 connexion
+flask-login==0.6.2

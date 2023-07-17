@@ -15,18 +15,26 @@
   {% for message in get_flashed_messages() %}
     <div class="alert"> {{message}} </div>
   {% endfor %}
+ {% if current_user.is_authenticated %}
   <h2>
     <img alt="Avatar" class="avatar" src="{{ url_for('static', filename='images/avatar.png') }}" />
     {{ user.name }}'s Watchlist
   </h2>
+ {% endif %}
   <nav>
     <ul>
       <li><a href="{{ url_for('index') }}">Home</a></li>
-    </ul>
+      {% if current_user.is_authenticated %}
+      <li><a href="{{url_for('settings')}}">Settings</a></li>
+      <li><a href="{{url_for('logout')}}">Lougout</a></li>
+      {% else %}
+      <li><a href="{{url_for('login')}}">Login</a></li>
+      {% endif %}
+    </ul> 
   </nav>
   {% block content %}{% endblock %}
   <footer>
-    <small>&copy; 2018
+    <small>&copy; 2023
       <a href="http://helloflask.com/book/3">HelloFlask</a></small>
   </footer>
 </body>
