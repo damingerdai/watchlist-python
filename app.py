@@ -3,7 +3,7 @@ import os
 import sys
 import click
 from re import escape
-from flask import Flask, render_template, url_for
+from flask import Flask, flash, redirect, render_template, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 
 isWin = sys.platform.startswith('win')
@@ -16,6 +16,7 @@ else:
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = pref + os.path.join(app.root_path, 'data.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对模型修改的监控
+app.config['SECRET_KEY'] = 'dev'  # 等同于 app.secret_key = 'dev'
 # 在扩展类实例化前加载配置
 db = SQLAlchemy(app)
 
@@ -35,10 +36,20 @@ def inject_user():
     print(user)
     return dict(user=user)
 
-@app.route('/')
-@app.route('/home')
-@app.route('/index')
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        year = request.form.get('year')
+        if not title or not year or len(year) != 4 or len(title) > 60:
+            flash('Invalid input.')
+            return redirect(url_for('index'))
+        movie = Movie(title = title, year=year)
+        db.session.add(movie)
+        db.session.commit()
+        flash('Item created.')
+        return redirect(url_for('index'))
+
     movies = Movie.query.all()
     return render_template('index.html', movies=movies)
 
@@ -54,6 +65,35 @@ def test_url_for():
     print(url_for('test_url_for'))
     print(url_for('test_url_for', num=2)) 
     return '<div>Hello, this is test page</div>'
+
+
+@app.route('/movie/edit/<int:movie_id>', methods=['GET', 'POST'])
+def edit(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+
+    if request.method == 'POST':
+        title = request.form['title']
+        year = request.form['year']
+
+        if not title or not year or len(year) != 4 or len(title) > 60:
+            flash('Invalid input.')
+            return redirect(url_for('edit', movie_id=movie_id))
+        movie.title = title
+        movie.year = year
+        db.session.commit()
+        flash('Item updated')
+        return redirect(url_for('index'))
+
+    return render_template('edit.html', movie=movie)
+        
+
+@app.route('/movie/delete/<int:movie_id>', methods=['POST'])
+def delete(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    db.session.delete(movie)
+    db.session.commit()
+    flash('Item deleted.')
+    return redirect(url_for('index'))
 
 @app.cli.command()
 @click.option('--drop', is_flag=True, help='Create after drop.')
